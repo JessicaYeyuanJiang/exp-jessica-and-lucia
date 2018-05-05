@@ -1,0 +1,743 @@
+---
+title: 'Assignment 2: Experimenting with Visual Design'
+author: "Jessica Jiang, Lucia Delgado"
+date: "4/20/2018"
+output: html_document
+urlcolor: blue
+---
+
+#How Minimalist Design Affects Information Delivery
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, comment = NA, message = FALSE, warning = FALSE)
+```
+
+##Goal: 
+The goal of this experiment is to evaluate readers acceptance of the minimalist data visualization and their average preference between a standard graph and a minimalist version. 
+
+We also explore if a minimalist approach can be more effective in delivering a message to the audience and if it has an effect on the ability of the reader to recall specific features of the data once the visualization is no longer available. 
+
+## Experimental Data: 
+We aimed at 80 participants divided into two experimental conditions and we successfully collected data of 79 participants on their preference for two different graphs displaying the identical information, one is designed with the minimalist elements, while the other involves both more text information and aesthetics (due to the budget reason, sample size is limited to 79). 
+
+The survey was designed using Qualtrics and administered using Amazon Mechanical Turk. The only filtered required to answer the survey was to be located in the US. This would ensure that the respondents speak English. We randomized whether the participant would be provided with a minimalist or non-minimalist visualization. 
+
+
+##Visualizations:
+
+#### Data presented in the visualizations:
+The data used in the visualization is the Health Survey data collected by The National Institute of Statistics and Geography during 2012 in Mexico. The data cleaning process includes variable selection and data aggregation: since the main goal of our project is to provide one minimalist and one non-minimalist graphs with the basic information of Body Mass Index (BMI) by age and gender, we cleaned the original data set and only maintained variables BMI, diets indicators, and basic demographic information. Meanwhile, in order to maintain the privacy of individual cases in public reports while also being able to have a cleaner data, we believe that there is of less sense of fully tapping into details of all disparate age. We removed observations whose age is higher than 100 year-old and gathered and expressed information of age by aggregating them into twenty age groups ( 0 - 4, 5 - 9,10 -14, and etc.). We calculate the mean Body Mass Index (BMI) within each age group by male and female.
+
+#### Visualization Design
+
+We used ggplot2 package in RStudio. For both minimalist and non-minimalist visualization, BMI and Age group are mapped respectively to x-axis and y-axis, while variable gender (only two categories in this case: male and female) is mapped to the aesthetics of shape. Note that variable BMI is mapped to the x-axis since this way the vertical space is guaranteed for future use in the non-minimalist graph. Because this element needs to be controlled and the only difference between two scenarios is the minimalism, it is mapped to a-axis in both visualizations. 
+
+For the minimalist graph (Exhibit 1), in order to improve the simplicity of design and reduce non-data ink, any special effects are avoided: there is no color-mapping by gender, and x-, y- axis as well as borders and gridlines have been removed. In addition, the color of labels and titles are lightened from black to grey, tick marks are only regularly-spaced at logical intervals of 50-year for age (10-year for age group) so we only have three tick marks on the y-axis. Same for BMI on the x-axis, only the value of threshold of each group are maintained and there are only three tick marks. Accordingly, background are divided into four groups (underweight, normal, overweight, and obese) with three vertical grey dash-line with x-axis intercept of each tick mark 18.5, 25.0, and 30.0, placed between each two adjacent BMI groups. Besides, the borders has been removed and background color as well as label color, instead of grey, are set to white. However, in order to keep the clarity of the visualization, the title, label of axes, and legends are all kept in the graph. We used scatterplot to present the BMI for male and female respectively in each age group: circle represents female and triangle represents male. 
+
+For the non-minimalist or more complex visualization (Exhibit 2), the ink color is set back to the default setting black. The title Prevalence of Overweight and Obesity, Mexico 2012 also has bigger font size. Under the title, we briefly describe the graph and add one paragraph to tell readers a short story of the background that Mexico ranks the most obese country in the world in adult obesity by 2012. Meanwhile, at the bottom of the graph, we provide two formulas used to calculate BMI for readers who have different preferences of unit of measurement. In considering the users possible expectations of detailed tick marks that can be used to calculate their own BMI and understand if they are underweight, normal, overweight, or obese, tick labels are defined to contain more blocks and less spacing: x-axis has ten tick marks with spacing of 2 and y-axis now has 20 tick mark labels, each standing for one age group.  Other than the words placed on the top of each BMI group, in this non-minimalist graph, the range of BMI under each group is marked under the group, such as underweight <18.5, normal 18.5 - 23.0 and etc. In the background, contours of different body shapes are placed in each group. We believe that in this way readers can get a more straightforward impression of how each body weight group looks like approximately. Most importantly, one more aesthetics color is mapped to the grouping variable gender: now pink circles represent female while blue triangles represent males. At the same time, we added one more layer to the graph with geom_line and linked the point of male to the point of female within each group. 
+
+
+```{r library}
+library(haven)
+library(data.table)
+library(ggplot2)
+library(tidyverse)
+library(knitr)
+library(dplyr)
+library(grid)
+#library(magick)
+library(magrittr)
+library(png)
+library(ri)
+
+#source("https://bioconductor.org/biocLite.R") #install gggtree
+#biocLite("ggtree")
+#library(ggtree)
+```
+
+```{r}
+#read in data
+data_folder = "~/Documents/1. Harris/6 Quarter/Data Viz/exp assignment"
+health_survey <- read_dta(paste0(data_folder,"/base final regresiones.dta"))
+health_survey <- data.table(health_survey)
+```
+
+```{r}
+#######################
+#     clean data      #
+#######################
+
+#remove colomns not to be used
+health_survey[,c("a????o", "munici", "fecha_ent", "genero", "escuela", "densidad" , "edad_cuad" , "interaccion_promedio_densidad", "interaccion_ricos_promedio", "_Iescuela_1",
+                 "_Iescuela_2", "disper")] <- NULL
+health_survey <- health_survey[, .(#iid = folio,
+                                   state = entidad,
+                                   community = locali, 
+                                   sex = sexo,
+                                   age = edad, 
+                                   socialstatus = nse10f,
+                                   education = escolari, 
+                                   bmi = imc,
+                                   city = ciudad, 
+                                   price_index = inpc,
+                                   obesity_perc = prevalencia, 
+                                   age_decade = edades,
+                                   sweetbread = pan_dulce, 
+                                   packed_cake = pasteles_emp,
+                                   cake = pasteles_granel, 
+                                   soup = sopas, 
+                                   cereal = cereales, 
+                                   chocolate = chocolate,
+                                   concentrate = conservas,
+                                   icecream=helados,
+                                   jelly = gelatina, 
+                                   candy = dulces,
+                                   chips = papas, 
+                                   juice = jugos,
+                                   syrup = concentrados, 
+                                   soda = refrescos,
+                                   total_price_weighted = promedio_ponderado,
+                                   food_weighted = promedio_alimentos,
+                                   drink_weighted = promedio_bebidas,
+                                   #population = poblaci??n,
+                                   obese_dummy = obesidad,
+                                   overweight_dummy = sobrepeso, 
+                                   rich = ricos,
+                                   poor = clase_baja, 
+                                   medium = clase_media,
+                                   high = clase_alta)]
+
+#recode sex value from Esp to Eng
+health_survey$sex <- recode(health_survey$sex , "hombres" = "male", "mujeres" = "female" )
+
+#save as assignment2.dta in the data folder specified
+write.csv(health_survey, paste0(data_folder,"/assignment2.csv"), row.names=TRUE)
+```
+
+
+```{r, results = "hide"}
+#read in cleand data
+DT <- as.data.table(read.csv(paste0(data_folder,"/assignment2.csv")))
+
+#remove age higer than 100 because of too few observations
+DT <- DT[age<=100, ]
+
+#recode age to 20 age groups(1,2,3,...,20) by interval = 5
+upper = 0
+for (i in 1:20){
+  DT[age >= upper ,  age_range := i]
+  upper = upper + 5
+}
+
+#recode numerical age groups to chategorical
+DT$age_range <- as.factor(DT$age_range)
+table(factor(DT$age_range))
+levels(DT$age_range) <- c("0-4","5-9","10-14","15-19","20-24","25-29",
+                          "30-34","34-39","40-44","45-49","50-54",
+                          "55-59", "60-64","65-69", "70-74","75-79",
+                          "80-84","85-89","90-94","95-100")
+```
+
+####Exhibit 1: Non-minimalist Visualization
+
+```{r, out.width='80%'}
+DT_plot <- DT %>%
+  group_by(age_range, sex) %>%
+  dplyr::summarise(bmi = mean(bmi, na.rm = TRUE)) 
+
+plot_base <-
+  ggplot(DT_plot, aes(x = bmi, y = age_range, label = round(bmi, 2))) +
+  geom_point(aes(colour = sex, shape = sex), size=3) + 
+  geom_line(aes(group = age_range), color="darkgrey") +
+  scale_color_manual(values=c("#FF33CC", "#0033FF"))
+
+#adjust title, subtitle, caption, legends, and axis
+plot_med <- plot_base +
+  scale_x_continuous(limits = c(15, 33), breaks = seq(15, 33, by = 2)) +
+  labs(title = "Prevalence of Overweight and Obesity, Mexico 2012",
+       subtitle = "Data represents average BMI by age group for male and female in Mexico during 2012 \nMexico ranks the most obese country in the world in adult obesity (as of 2012) \nThe classification to categorize BMI was the World health Organization's (WHO)",
+       x = "Mean Body Mass Index (Mean BMI)", y = "Age",
+       caption = "BMI = Weight(kg) / height_squared(cm) \nor  BMI = Weight(lbs)*0.45/(height*0.025)^2") +
+  theme(plot.title = element_text(size = 20, margin = margin(b = 10)),
+        plot.subtitle = element_text(size = 9, color = "black", margin = margin(b = 10)),
+        plot.caption = element_text(size = 8, color = "black", hjust = 0, vjust = 0.9),
+        legend.direction = "horizontal",
+        legend.position = c(0.5, -0.2),
+        legend.title = element_blank(),
+        legend.background = element_blank()) 
+  
+#add cutt-offs
+# BMI < 18.5 : underweight ; [18.5, 24.9): normal; BMI >= 30 : overweight.
+plot_adv <- plot_med +
+ geom_vline(xintercept = 18.5, linetype="dashed", color = "black") +
+  geom_vline(xintercept = 25.0, linetype="dashed", color = "black") +
+  geom_vline(xintercept = 30, linetype="dashed", color = "black") 
+  
+grob1 <- grobTree(textGrob("underweight \n<18.5",    x = 0.025, y = 0.92, hjust = 0,
+  gp=gpar(col="#333333", fontsize=13, fontface="italic")))
+grob2 <- grobTree(textGrob("normal \n18.5-23.0",     x = 0.31,  y = 0.92, hjust = 0,
+  gp=gpar(col="#333333", fontsize=13, fontface="italic")))
+grob3 <- grobTree(textGrob("overweight \n23.0-27.5", x = 0.61,  y = 0.92, hjust = 0,
+  gp=gpar(col="#333333", fontsize=13, fontface="italic")))
+grob4 <- grobTree(textGrob("obese \n>27.5",          x = 0.88,  y = 0.92, hjust = 0,
+  gp=gpar(col="#333333", fontsize=13, fontface="italic")))
+
+plot_adv <- 
+ plot_adv + 
+  annotation_custom(grob1) +
+  annotation_custom(grob2) +
+  annotation_custom(grob3) +
+  annotation_custom(grob4) 
+
+#change background
+plot_adv <-
+  plot_adv + 
+  theme(panel.background = element_blank()) +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.background = element_blank())
+
+#bring in imgaes
+uw <- readPNG(paste0(data_folder,"/image/uw.png"))
+uw <- rasterGrob(uw, interpolate=TRUE)
+
+nm <- readPNG(paste0(data_folder,"/image/nm.png"))
+nm <- rasterGrob(nm, interpolate=TRUE)
+
+ow <- readPNG(paste0(data_folder,"/image/ow.png"))
+ow <- rasterGrob(ow, interpolate=TRUE)
+
+ob <- readPNG(paste0(data_folder,"/image/ob.png"))
+ob <- rasterGrob(ob, interpolate=TRUE)
+
+
+#imbed images
+plot_adv <- 
+ plot_adv + 
+  annotation_custom(uw,xmin=15,    xmax=18,  ymin=4, ymax=15)  +
+  annotation_custom(nm,xmin=20.5,  xmax=22 , ymin=4, ymax=15) +
+  annotation_custom(ow,xmin=26,    xmax=29 , ymin=4, ymax=15) +
+  annotation_custom(ob,xmin=30,              ymin=4, ymax=15)
+
+
+#save the plot
+plot_adv_save <-
+  plot_adv +
+  ggsave(filename = paste0(data_folder,"/plot_adv.png"),
+         width = 10, height = 5, dpi = 2000)
+
+plot_adv_save
+```
+
+
+####Exhibit 2 - Minimalist Visualization
+
+
+```{r, out.width='80%'}
+plot_base_min <-
+  ggplot(DT_plot, aes(x = bmi, y = age_range, label = round(bmi, 2))) +
+  geom_point(aes(shape = sex), size=3, color="grey29") 
+
+#adjust title, subtitle, caption, legends, and axis
+plot_med_min <- plot_base_min +
+  scale_x_continuous(limits = c(16, 31), breaks = c(18.5, 25, 30)) +
+  scale_y_discrete( breaks = c("0-4","50-54", "95-100")) +
+  
+  labs(title = "Prevalence of Overweight and Obesity, Mexico 2012",
+       x = "Body Mass Index", y = "Age"
+       #caption = "Data represents average BMI by age group for female and male repsectively in Mexico during 2012. Only people \nwhose age low or equal to 100 are presented."
+       ) +
+  
+  theme(plot.title = element_text(size = 10, margin = margin(b = 10), color = "gray40", face="bold"),
+        plot.subtitle = element_text(size = 9, color = "black", margin = margin(b = 10)),
+        plot.caption = element_text(size = 8, color = "black", hjust = 0, vjust = 0.9),
+        legend.direction = "horizontal",
+        legend.position = c(0.75, -0.07),
+        legend.title = element_blank(),
+        legend.background = element_blank(),
+        
+        axis.title = element_text(size = 9, color = "gray30", face = "bold"))
+  
+#add cutt-offs
+# BMI < 18.5 : underweight ; [18.5, 24.9): normal; BMI >= 30 : overweight.
+plot_adv_min <- plot_med_min +
+ geom_vline(xintercept = 18.5, linetype="dotted", color = "gray") +
+  geom_vline(xintercept = 25.0, linetype="dotted", color = "gray") +
+  geom_vline(xintercept = 30, linetype="dotted", color = "gray") 
+  
+grob1 <- grobTree(textGrob("underweight", x = 0.02,  y = 0.95, hjust = 0,
+  gp=gpar(col="#333333", fontsize=9, fontface="bold")))
+grob2 <- grobTree(textGrob("normal", x = 0.36,  y = 0.95, hjust = 0,
+  gp=gpar(col="#333333", fontsize=9, fontface="bold")))
+grob3 <- grobTree(textGrob("overweight", x = 0.7,  y = 0.95, hjust = 0,
+  gp=gpar(col="#333333", fontsize=9, fontface="bold")))
+grob4 <- grobTree(textGrob("obese", x = 0.91,  y = 0.95, hjust = 0,
+  gp=gpar(col="#333333", fontsize=9, fontface="bold")))
+
+plot_adv_min <- 
+ plot_adv_min + 
+  annotation_custom(grob1) +
+  annotation_custom(grob2) +
+  annotation_custom(grob3) +
+  annotation_custom(grob4) 
+
+Plot_minimal2 <-
+  plot_adv_min + 
+  theme(panel.background = element_blank()) +
+  theme(panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor = element_blank(),
+        legend.background = element_blank())
+
+
+#save the plot
+plot_min_save <-
+  Plot_minimal2 +
+  ggsave(filename = paste0(data_folder,"/plot_min.png"),
+         width = 10, height = 5, dpi = 2000)
+
+plot_min_save
+```
+
+
+##Survey Design:
+
+Now it comes to the survey designing process. When a reader is provided with the graph, they will be asked to provide their evaluations of two visualizations on the dimension of major information, effectiveness, beauty, and simplicity. Instead of being guided to decide if he/she is healthy, underweight, or overweight, the reader is expected to only get a general sense of the information: Obesity is a serious issue in Mexico now. Readers do not necessarily need to calculate the exact BMI of themselves or locate which group they belong to. 
+
+The survey includes 5 questions: 
+
+Questions 1 and 2 are be used to determine the effectiveness of visualization. In these firsts questions, readers are randomized to receive either the minimalist graph or the non-minimalist visualization. Note that in Qualtrics, design is set successfully for randomization, which means that participants had equal chance to receive either visualization. 
+
+Question 1 asks if the reader think Mexican government should implement a policy to reduce obesity. It is meant to evaluate from which graph, the reader can better capture the main information of the critical situation of obesity in Mexico. If the reader chooses yes, we consider the graph presented to have successfully passed the essential information. In contrast, if the answer is no or unsure, the graph is considered to be not clear for this reader. 
+
+Question 2 asks readers to decide which age group on average has the problem of overweight, which requires readers to look a bit more into the graph and would be used to determine which graph actually enhance readers understanding. 
+
+In Question 3, the visual is no longer displayed and the reader is asked to judge if a statement about the data displayed in the visualization is right and choose either true or false. This question allows testing for differences in recallability and attention associated with each type of visual.
+
+For Questions 4 and 5, both graphs are presented to readers (since they cannot go back and modify their answers in the previous questions, the presentation of the two graphs will not affect randomization or cause selection bias). In this section, the reader is asked about her preferred design.Question 4 explicitly asks the reader which graph is preferred and the Question 5 asks the reasons of their preference of one over another with options color, information, images, simplicity, and other. This last question will be used to determine which factor is considered to be a more important contributor to a good visualization. 
+
+The survey is shown in Appendix A. Additionally, the survey can be accessed at this link http://ssd.az1.qualtrics.com/jfe/form/SV_1HW8jXQeiGcZqxD
+
+
+##Results 
+
+```{r}
+exp_DT <- read.csv(paste0(data_folder,"/DataVisExp.csv"), header = TRUE)
+
+#rename variables
+names(exp_DT)[names(exp_DT) == 'Q15'] <- 'Q2'
+names(exp_DT)[names(exp_DT) == 'Q27'] <- 'Q3'
+names(exp_DT)[names(exp_DT) == 'Q21'] <- 'Q4'
+names(exp_DT)[names(exp_DT) == 'Q23'] <- 'Q5'
+
+#gather daa
+library(scales)
+
+blank_theme <- theme_minimal() +
+  theme(
+  axis.title.x = element_blank(),
+  axis.title.y = element_blank(),
+  panel.border = element_blank(),
+  panel.grid=element_blank(),
+  axis.ticks = element_blank(),
+  axis.text.y = element_blank(),
+  plot.title=element_text(size=14, face="bold"))
+
+#relevel variable levels
+exp_DT$Indicator_bw <- as.factor(exp_DT$Indicator_bw)
+levels(exp_DT$Indicator_bw) <- c("Non-minimalist", "Minimalist")
+exp_DT$Q1 <- factor(exp_DT$Q1,levels(exp_DT$Q1)[c(3,1,2)])
+exp_DT$Q3 <- factor(exp_DT$Q3,levels(exp_DT$Q3)[c(4,2,3,1)])
+
+```
+
+## Question 1
+In the data we collected from the survey,  for the first question, as shown in table 1, 36 participants were randomly presented the non-minimalist graph and 47% choose yes for a policy for obesity issue in Mexico, while 43 participants received the treatment of minimalist graph and 67% of them choose the same answer. The percentage of participants who choose unsure for if the government should draft a policy of each group is very close. 
+
+
+**Survey Answers**
+```{r, out.width='80%', fig.align="center"}
+############################################################################
+# Q1  Should the Mexican government implement a poplicy to reduce obesity? #
+############################################################################
+
+exp_DT %>% 
+  group_by(Indicator_bw, Q1) %>%
+  summarise(n = n()) %>%
+  group_by(Indicator_bw) %>% 
+  mutate(total = sum(n), prop = n/total) %>% 
+  ggplot(aes(x = 1, y = prop, fill = Q1)) +
+    geom_bar(width = 1, stat = "identity") +
+  facet_grid(facets=. ~ Indicator_bw) +
+  coord_polar("y", start=0) +
+  blank_theme +
+  theme(axis.text.x=element_blank()) +
+  theme(strip.text.x = element_text(size = 16, colour = "#666666")) +
+  theme(plot.title = element_text(size = 10, color = "gray25", face="bold")) +
+  ggtitle("QUESTION 1 \nShould the Mexican government implement a policy \nto reduce obesity?")
+```
+
+
+**Permutation Test**
+
+Since the sample size is too small for significance test for two-sample mean difference, we use permutation method by re-randomizing the sample data of the survey and conducted significance test on the mean of difference of getting the answer yes for the first question of if the government should implement a policy. The results indicate a two-tailed p-value of 5.4% and we failed to reject the null hypothesis at 5% significance level; in other words, the test show that with given sample, we are not able to conclude any significant difference at the rate of getting the right answer between participants who were shown the minmalist graph and those who were shown the non-minimalist one.
+
+```{r, out.width='80%', fig.align="center"}
+###########################
+#      statistic test     #
+###########################
+
+exp_DT_Q1 <- exp_DT
+exp_DT_Q1$Q1_dummy <- 0 
+exp_DT_Q1$Q1_dummy[exp_DT_Q1$Q1 == "Yes"] <- 1
+
+exp_DT_Q1$bw_dummy <- 0 
+exp_DT_Q1$bw_dummy[exp_DT_Q1$Indicator_bw == "Minimalist"] <- 1
+
+#permutation Test
+set.seed(1234)
+attach(exp_DT_Q1)
+perm <- genperms(bw_dummy, maxiter = 1000)
+ATE <- estate(Q1_dummy, bw_dummy)
+Ys <- genouts(Q1_dummy,bw_dummy,ate=0)  #potential outcomes under sharp null of no effect
+distout <- gendist(Ys,perm) #sampling dist under sharp null
+dispdist(distout, ATE)
+```
+
+**Logistic Regression**
+
+The logistic regression analysis shows that those individuals in the minimalistic group have a higher probability than those in the non-minimalistic group to respond in favor of implementing a policy to reduce obesity. However, the estimated coefficient for the dummy variable indicating the group of the respondent is not statistically significant. This results can be driven by the low number of observations in the data.
+
+```{r, out.width='80%', fig.align="center"}
+#logistic regression
+model_Q1 <- glm(Q1_dummy ~bw_dummy, family=binomial(link='logit'), data = exp_DT_Q1)
+summary(model_Q1)
+```
+
+## Question 2
+
+For question 2, which age group/groups have on average a BMI indicating overweight, participants do not differentiate much in their answers. To better analyze this question, we constructed a score to rank the answers. The correct answer for this question would be young adults, middle age, and elder; if the answer includes one of the mentioned aforementioned, the answer scores 1, if two the answer scores 2, and if all of them are mentioned, the participant get the full score of 3. However, if the answer does not mention any of them, the score is 0. For both groups, 38%-39% of them score 2 or 3.  
+
+
+\begin{table}[h]
+\centering
+\caption{Which age group(s) have BMI indicating overweight}
+\label{my-label}
+\begin{tabular}{llll}
+score & Non-minimalist & Minimalist & Interpretation of Score                    \\
+0     & 11\%           & 9\%        & did not get any of the three right answers \\
+1     & 50\%           & 51\%       & get one right answer                       \\
+2     & 19\%           & 30\%       & get two right answers                      \\
+3     & 19\%           & 9\%        & get all right answers                      \\
+total & 100\%          & 100\%      &                                           
+\end{tabular}
+\end{table}
+
+```{r, include=FALSE}
+###########################################################################
+# Q2  Which age group/groups have on average a BMI indicating overweight? #
+###########################################################################
+
+#search word "Children" in the answer 
+exp_DT$Q2_children = 0
+for (row in 1:nrow(exp_DT)){
+  if(grepl("Children", exp_DT[row,]$Q2) == TRUE) {
+    exp_DT[row,]$Q2_children = 1
+  }
+}
+
+#search word "Teenagers" in the answer 
+exp_DT$Q2_teenager = 0
+for (row in 1:nrow(exp_DT)){
+  if(grepl("Teenagers", exp_DT[row,]$Q2) == TRUE) {
+    exp_DT[row,]$Q2_teenager = 1
+  }
+}
+
+#search word "Young Adults" in the answer 
+exp_DT$Q2_yadults = 0
+for (row in 1:nrow(exp_DT)){
+  if(grepl("Young Adults", exp_DT[row,]$Q2) == TRUE) {
+    exp_DT[row,]$Q2_yadults = 1
+  }
+}
+
+#search word "Middle Age" in the answer 
+exp_DT$Q2_midage = 0
+for (row in 1:nrow(exp_DT)){
+  if(grepl("Middle Age", exp_DT[row,]$Q2) == TRUE) {
+    exp_DT[row,]$Q2_midage = 1
+  }
+}
+
+#search word "Elderly" in the answer 
+exp_DT$Q2_elder = 0
+for (row in 1:nrow(exp_DT)){
+  if(grepl("Elderly", exp_DT[row,]$Q2) == TRUE) {
+    exp_DT[row,]$Q2_elder = 1
+  }
+}
+
+#search word "Not sure" in the answer 
+exp_DT$Q2_notsure = 0
+for (row in 1:nrow(exp_DT)){
+  if(grepl("Not sure", exp_DT[row,]$Q2) == TRUE) {
+    exp_DT[row,]$Q2_notsure = 1
+  }
+}
+
+
+#Table to print out#
+exp_DT %>% 
+  select(2, 7:12) %>% 
+  mutate(score = Q2_yadults + Q2_midage + Q2_elder) %>%
+  group_by(Indicator_bw,score) %>%
+  summarise(n = n()) %>%
+  group_by(Indicator_bw) %>%
+  mutate(total = sum(n), prop = round(n/total,2)) %>%
+  select(1,2,5)
+```
+
+**Linear Regression**
+
+The linear regression analysis shows that those individuals in the minimalistic group have on average a lower score than those in the non-minimalistic group. The estimated coefficient for the dummy variable indicatin the group of the respondent, however, is not statistically significant. This results can also be driven by the low number of observations in the data.
+
+```{r, out.width='80%', fig.align="center"}
+###########################
+#      statistic test     #
+###########################
+exp_DT_Q2 <- exp_DT %>% 
+  select(2, 7:12) %>% 
+  mutate(score = Q2_yadults + Q2_midage + Q2_elder)
+
+exp_DT_Q2$bw_dummy <- 0 
+exp_DT_Q2$bw_dummy[exp_DT_Q2$Indicator_bw == "Minimalist"] <- 1
+
+model_Q2 <- lm(score ~ bw_dummy, data = exp_DT_Q2)
+summary(model_Q2)
+```
+
+
+## Question 3
+For the third question, 75% of non-minimalist readers answered the question correctly and chose True, while only 57% of minimalist readers get the right answer. 
+
+```{r, out.width='80%', fig.align="center"}
+#####################################################################
+# Q3  True or False: on average, females have higher BMI than males #
+#####################################################################
+
+exp_DT %>% 
+  group_by(Indicator_bw, Q3) %>%
+  summarise(n = n()) %>%
+  filter(n!= 1) %>%
+  group_by(Indicator_bw) %>% #remove obs w/ missing value
+  mutate(total = sum(n), prop = n/total) %>% 
+  ggplot(aes(x = 1, y = prop, fill = Q3)) +
+    geom_bar(width = 1, stat = "identity") +
+  facet_grid(facets=. ~ Indicator_bw) +
+  coord_polar("y", start=0) +
+  blank_theme +
+  theme(axis.text.x=element_blank()) +
+  theme(strip.text.x = element_text(size = 16, colour = "#666666")) +
+  theme(plot.title = element_text(size = 10, color = "gray25", face="bold")) +
+  ggtitle("QUESTION 3 \nOn average, is it true that females have higher BMI than males?")
+
+```
+
+
+## Question 4
+It is interesting that when readers are presented both graphs and asked to choose one they prefer, 81% chose the more complex design and only 19% chose the minimalist design. Out of the readers who at the beginning were only shown the non-minimalist graph, 83% of them stick with their initial visualization; however, 79% of participants who for the first question were given the high-ink ratio chart, rather chose the more complex one as their preferred option. 
+
+\begin{table}[]
+\centering
+\caption{Which Figure Do You Prefer?}
+\label{my-label}
+\begin{tabular}{lll}
+Figure Preferred & Frequency & Proportion \\
+Non-minimalist   & 64        & 81\%       \\
+Minimalist       & 15        & 19\%       \\
+Total            & 79        & 100\%     
+\end{tabular}
+\end{table}
+
+```{r, out.width='80%', fig.align="center"}
+##################################
+# Q4  which figure do you prefer #
+##################################
+
+exp_DT %>% 
+  group_by(Indicator_bw, Q4) %>%
+  summarise(n = n()) %>%
+  group_by(Indicator_bw) %>% #remove obs w/ missing value
+  mutate(total = sum(n), prop = n/total) %>% 
+  ggplot(aes(x = 1, y = prop, fill = Q4)) +
+    geom_bar(width = 1, stat = "identity") +
+  facet_grid(facets=. ~ Indicator_bw) +
+  coord_polar("y", start=0) +
+  blank_theme +
+  theme(axis.text.x=element_blank()) +
+  theme(strip.text.x = element_text(size = 16, colour = "#666666")) +
+  theme(plot.title = element_text(size = 10, color = "gray25", face="bold")) +
+  ggtitle("QUESTION 4 \nWhich figure do you prefer?")
+```
+
+**Logistic Regression**
+
+
+As shown in the previous graph, most individuals prefer the non-minimalistic plot over the minimalistic one. The logistic regression analysis shows that there is no significant difference between each experimental group. 
+
+```{r}
+###########################
+#      statistic test     #
+###########################
+exp_DT_Q4 <-exp_DT
+exp_DT_Q4$bw_dummy <- 0
+exp_DT_Q4$bw_dummy[exp_DT_Q4$Indicator_bw == "Minimalist"] <- 1
+
+#color_preferred = 1, bw_preferred = 0
+exp_DT_Q4$Q4_dummy <- 0
+exp_DT_Q4$Q4_dummy[exp_DT_Q4$Q4 == "Figure A (color)"] <- 1
+
+model_Q4 <- glm(Q4_dummy ~ bw_dummy, family=binomial(link='logit'), data = exp_DT_Q4)
+summary(model_Q4)
+```
+
+## Question 5
+The results of the last question show that among readers who prefer the non-minimalist visualization,  67% of them mentioned color as the reason of their preference, 62% mentioned amount of information, and 59% values the design of image in the background, while only 17% chose the simplicity. For those who express more affection to the minimalist design, while color and information are only mentioned 13% out of all, image 20%, 70% of them like the low-ink ratio chart is because of the simplicity of design. 
+
+```{r, out.width='80%', fig.align="center"}
+###################################
+# Q5 why do you prefer this graph #
+###################################
+
+#search word "color"" in the answer 
+exp_DT$Q5_color = 0
+for (row in 1:nrow(exp_DT)){
+  if(grepl("Color", exp_DT[row,]$Q5) != 0) {
+    exp_DT[row,]$Q5_color = 1
+  }
+}
+
+#search word "Amount of information" in the answer 
+exp_DT$Q5_info = 0
+for (row in 1:nrow(exp_DT)){
+  if(grepl("Amount of information", exp_DT[row,]$Q5) == TRUE) {
+    exp_DT[row,]$Q5_info = 1
+  }
+}
+
+#search word "Images" in the answer 
+exp_DT$Q5_image = 0
+for (row in 1:nrow(exp_DT)){
+  if(grepl("Images", exp_DT[row,]$Q5) == TRUE) {
+    exp_DT[row,]$Q5_image = 1
+  }
+}
+
+#search word "Simplicity" in the answer 
+exp_DT$Q5_simp = 0
+for (row in 1:nrow(exp_DT)){
+  if(grepl("Simplicity", exp_DT[row,]$Q5) == TRUE) {
+    exp_DT[row,]$Q5_simp = 1
+  }
+}
+
+#search word "Other" in the answer 
+exp_DT$Q5_other = 0
+for (row in 1:nrow(exp_DT)){
+  if(grepl("Other", exp_DT[row,]$Q5) == TRUE) {
+    exp_DT[row,]$Q5_other = 1
+  }
+}
+
+
+#Table to print out#
+exp_DT %>% 
+  select(2, 5, 13:17) %>%
+  group_by(Q4) %>%
+  summarise(n = n(), 
+            freq = round(n/ 79,2),
+            Color = round(sum(Q5_color)/n, 2),
+            Information = round(sum(Q5_info)/n, 2),
+            Images = round(sum(Q5_image)/n, 2),
+            Simplicity = round(sum(Q5_simp)/n, 2),
+            Other = round(sum(Q5_other)/n, 2)
+            )
+
+
+```
+
+**Distribution for all the respondents**
+```{r, out.width='80%', fig.align="center"}
+knitr::include_graphics("why.png")
+```
+##Conclusions:
+
+The main finding of this experiment is that, on average,  the minimalistic plot was not preferred over the non-minimalistic plot. We also get to recover some insights on why people prefer the non-minimalistic plot.  
+
+Regarding the efficacy to transmit a message and recallability of minimalistic graphs, with this amount of data and small sample size, there is as yet insufficient data for any meaningful answer, and we are just too powerless to address any conclusion. 
+
+However, at least within this sample we study, it is obvious that much more participants prefer the design with a relatively lower-ink ratio. The reason for the preference of non-minimalist chart can give fast interest to capture potential readers and draw more attention to important facts. Sometimes readers do not have time to sit there and decode the number; rather they prefer a quick and easy access to get information.
+
+While minimalist design with extremely high data-ink ratio can provide information in a cleaner and more straightforward way, sometimes the omission of aesthetics factors and deliberate cutoff of information can backfire: readers are likely to get bored reading and extracting important information from a too-simple chart. A correct use of complexity can match readers visual preferences and enhance the effectiveness of a graph
+
+
+##Citation
+Inbar, Ohad & Tractinsky, Noam & Meyer, Joachim. (2007). Minimalism in information visualization: Attitudes towards maximizing the data-ink ratio. ACM International Conference Proceeding Series. 250. 185-188. 10.1145/1362550.1362587. 
+\newpage
+
+##Appendix A. Survey Design for minimalist group
+
+**Page 1 (Question 1)**
+```{r, out.width='70%'}
+knitr::include_graphics("Q1min.png")
+```
+\newpage
+
+**Page 2 (Question 2)**
+```{r, out.width='70%'}
+knitr::include_graphics("Q2min.png")
+```
+\newpage
+
+**Page 3 (Question 3)**
+```{r, out.width='70%'}
+knitr::include_graphics("Q3.png")
+```
+
+**Page 4 (Questions 4 and 5)**
+```{r, out.width='70%'}
+knitr::include_graphics("max.png")
+knitr::include_graphics("min.png")
+knitr::include_graphics("Q4Q5.png")
+```
+
+\newpage
+
+##Appendix B. Survey Design for non-minimalist group
+
+**Page 1 (Question 1)**
+```{r, out.width='70%'}
+knitr::include_graphics("Q1max.png")
+```
+\newpage
+
+**Page 2 (Question 2)**
+```{r, out.width='70%'}
+knitr::include_graphics("Q2max.png")
+```
+\newpage
+
+**Page 3 (Question 3)**
+```{r, out.width='70%'}
+knitr::include_graphics("Q3.png")
+```
+
+**Page 4 (Questions 4 and 5)**
+```{r, out.width='70%'}
+knitr::include_graphics("max.png")
+knitr::include_graphics("min.png")
+knitr::include_graphics("Q4Q5.png")
+```
+
